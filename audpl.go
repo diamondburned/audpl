@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -28,6 +29,16 @@ type Track struct {
 	Bitrate,
 	Codec,
 	Quality string
+}
+
+func ParseFile(file string) (*Playlist, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to open file")
+	}
+	defer f.Close()
+
+	return Parse(f)
 }
 
 func Parse(r io.Reader) (*Playlist, error) {
