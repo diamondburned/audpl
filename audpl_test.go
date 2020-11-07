@@ -1,6 +1,7 @@
 package audpl
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +16,10 @@ func TestParse(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	testPlaylist(t, p)
+}
+
+func testPlaylist(t *testing.T, p *Playlist) {
 	if p.Name != "HYDE" {
 		t.Fatalf("Unexpected playlist name, got %q != expected %q", p.Name, "HYDE")
 	}
@@ -22,7 +27,7 @@ func TestParse(t *testing.T) {
 	var tracks = []string{
 		"WHO'S GONNA SAVE US",
 		"MAD QUALIA",
-		//   v intentional
+		//    v intentional
 		"SICK（feat. Matt B of From Ashes to New)",
 		"ANOTHER MOMENT",
 		"FAKE DIVINE",
@@ -45,6 +50,27 @@ func TestParse(t *testing.T) {
 			t.Errorf("Unexpected track %d, got %q != expected %q", i, track.Title, tracks[i])
 		}
 	}
+}
+
+func TestSave(t *testing.T) {
+	pl := testdata(t, "1000.audpl")
+
+	p, err := Parse(pl)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rendered, err := p.SaveToBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := Parse(bytes.NewReader(rendered))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testPlaylist(t, r)
 }
 
 func TestSplitKV(t *testing.T) {

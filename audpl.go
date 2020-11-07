@@ -2,6 +2,8 @@ package audpl
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -118,4 +120,60 @@ func splitKV(text string) (string, string) {
 	}
 
 	return tsplit[0], tsplit[1]
+}
+
+func (p Playlist) SaveTo(w io.Writer) error {
+	_, err := fmt.Fprintf(w, "title=%s\n", url.QueryEscape(p.Name))
+	if err != nil {
+		return err
+	}
+
+	for _, track := range p.Tracks {
+		err := writePair(w,
+			"uri", track.URI,
+			"title", track.Title,
+			"artist", track.Artist,
+			"album", track.Album,
+			"album-artist", track.AlbumArtist,
+			"genre", track.Genre,
+			"year", track.Year,
+			"track-number", track.TrackNumber,
+			"length", track.Length,
+			"bitrate", track.Bitrate,
+			"codec", track.Codec,
+			"quality", track.Quality,
+		)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p Playlist) SaveToBytes() ([]byte, error) {
+	var buf bytes.Buffer
+
+	if err := p.SaveTo(&buf); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func writePair(w io.Writer, pairs ...string) error {
+	for i := 0; i < len(pairs); i += 2 {
+		k, v := pairs[i], pairs[i+1]
+		if v == "" {
+			continue
+		}
+
+		_, err := fmt.Fprintf(w, "%s=%s\n", k, url.QueryEscape(v))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
