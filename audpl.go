@@ -18,7 +18,7 @@ type Playlist struct {
 }
 
 type Track struct {
-	URI,
+	URI *url.URL
 	Title,
 	Artist,
 	Album,
@@ -68,11 +68,12 @@ func Parse(r io.Reader) (*Playlist, error) {
 			// Encountered new URI, signals start of new track. Push the old one
 			// into the list, but only if it has a URI. It doesn't have one when
 			// we're just starting to parse.
-			if track.URI != "" {
+			if track.URI != nil {
 				pl.Tracks = append(pl.Tracks, track)
 			}
 
-			track.URI = v
+			// erroneous URI to be ignored.
+			track.URI, _ = url.Parse(v)
 		case "title":
 			track.Title = v
 		case "artist":
@@ -114,11 +115,6 @@ func splitKV(text string) (string, string) {
 		return tsplit[0], ""
 	}
 
-	q, err := url.QueryUnescape(tsplit[1])
-	if err == nil {
-		tsplit[1] = q
-	}
-
 	return tsplit[0], tsplit[1]
 }
 
@@ -130,12 +126,12 @@ func (p Playlist) SaveTo(w io.Writer) error {
 
 	for _, track := range p.Tracks {
 		err := writePair(w,
-			"uri", track.URI,
-			"title", track.Title,
-			"artist", track.Artist,
-			"album", track.Album,
-			"album-artist", track.AlbumArtist,
-			"genre", track.Genre,
+			"uri", track.URI.String(),
+			"title", url.PathEscape(track.Title),
+			"artist", url.PathEscape(track.Artist),
+			"album", url.PathEscape(track.Album),
+			"album-artist", url.PathEscape(track.AlbumArtist),
+			"genre", url.PathEscape(track.Genre),
 			"year", track.Year,
 			"track-number", track.TrackNumber,
 			"length", track.Length,
@@ -169,7 +165,7 @@ func writePair(w io.Writer, pairs ...string) error {
 			continue
 		}
 
-		_, err := fmt.Fprintf(w, "%s=%s\n", k, url.QueryEscape(v))
+		_, err := fmt.Fprintf(w, "%s=%s\n", k, v)
 		if err != nil {
 			return err
 		}
