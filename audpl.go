@@ -50,9 +50,14 @@ func Parse(r io.Reader) (*Playlist, error) {
 		return nil, errors.Wrap(scanner.Err(), "Failed to scan for playlist name")
 	}
 
-	k, plname := splitKV(scanner.Text())
+	k, plURI := splitKV(scanner.Text())
 	if k != "title" {
 		return nil, errors.Errorf("Unexpected playlist header key name %s", k)
+	}
+
+	plname, err := url.PathUnescape(plURI)
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid path-escaped name %q", plURI)
 	}
 
 	var pl = Playlist{
